@@ -1,0 +1,66 @@
+セットアップマニュアル
+
+〇サーバのアクセス
+$ ssh isdev24@150.89.233.XXX
+→アクセスが完了するとメッセージが出る
+
+・Team番号ごとにサーバが存在し、"XXX"の部分が異なっている
+→私たちはTeam番号が3であるため"203"が入る
+
+〇sshアクセスログを確認
+$ sudo cat /var/log/auth.log
+→次に、以下のようにパスワードが求められる
+ [sudo] password for isdev24:
+
+・パスワードはTeam番号ごとに用意されている。
+→私たちの班では"isDev24?203"を使用する
+
+〇タイムゾーンの変更
+$ sudo timedatectl set-timezone Asia/Tokyo
+→タイムゾーンを"アジア・東京"に設定する
+
+・変更を確認
+$ timedatectl
+
+〇Javaのインストール
+[準備]
+$ wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg &&
+echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
+
+→Press [ENTER] to continue or Ctrl-c to cancel. が表示されたらENTER キーを押し、次に進む
+
+[インストール]
+$ sudo apt-get update; sudo apt-get install -y java-21-amazon-corretto-jdk
+→"$ java -version"でインストールを確認する
+
+〇Webアプリケーションの公開
+1.ホームディレクトリに移動
+→クローンするリポジトリを保存する場所に移動
+
+$ cd
+→"$ pwd"で確認
+
+2.リポジトリのクローン
+$ git clone https://github.com/xxx/yyy.git
+→"$ ls"を使用し、正しくクローン出来たかどうかを確認する
+
+[リポジトリに移動]
+$ cd janken
+→"janken"はリポジトリ名。私たちの班では"hit-blow"と入力
+
+・"https://github.com/xxx/yyy.git"の部分にTeamごとのgitリポジトリを入力
+→私たちの班では"git@github.com:b22060/hit-blow.git"を入力
+
+3.Gradle を利用した Web アプリケーションの実行
+[gradlewの実行]
+$ bash ./gradlew
+
+[プロジェクトの実行]
+$ bash ./gradlew bootrun
+→Teamのサーバにアクセスし、確認する
+
+〇makefileの作成
+サーバー起動をmakefileにしました。
+1.サーバー接続
+2.hit-blowリポジトリに移動する
+3.Webアプリケーションの実行

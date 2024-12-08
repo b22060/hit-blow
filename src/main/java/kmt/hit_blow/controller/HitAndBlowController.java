@@ -8,13 +8,10 @@ import java.util.ArrayList;
 //import java.util.ArrayList;
 
 import kmt.hit_blow.model.HitAndBlow;
-import kmt.hit_blow.model.UserMapper;
 import kmt.hit_blow.service.AsyncHitAndBlow;
 import kmt.hit_blow.model.User;
-import kmt.hit_blow.model.MatchMapper;
 import kmt.hit_blow.model.Match;
 import kmt.hit_blow.model.MatchInfo;
-import kmt.hit_blow.model.MatchInfoMapper;
 import kmt.hit_blow.model.MatchUser;
 
 import org.slf4j.Logger;
@@ -46,12 +43,6 @@ public class HitAndBlowController {
   String Myanswers; // 自分の回答（文字列）
   String Rivalanswers;// 相手の回答（文字列）
   int battleid = 0; // 対戦相手のidを格納する
-  @Autowired
-  private UserMapper userMapper;
-  @Autowired
-  private MatchMapper matchMapper;
-  @Autowired
-  private MatchInfoMapper matchInfoMapper;
 
   @GetMapping("step1") // テスト用
   public SseEmitter pushCount() {
@@ -76,37 +67,42 @@ public class HitAndBlowController {
   @GetMapping("/hit-blow") // hit-blow.htmlに遷移する
   public String hit_blow(ModelMap model, Principal prin) {
     // 表示に必要なデータをMapperで格納する
-    ArrayList<User> users = userMapper.selectAllByUsers();
-    ArrayList<Match> notactivematches = matchMapper.selectAllNotActiveByMatches();// 非アクティブの試合を渡す
+    ArrayList<User> users = this.HitAndBlow.asyncSelectAllByUsers();
+    ArrayList<Match> notactivematches = this.HitAndBlow.asyncSelectAllNotActiveByMatches();// 非アクティブの試合を渡す
     ArrayList<MatchUser> notactivematcheslist = new ArrayList<MatchUser>();// アクティブな試合結果を渡す
     for (int i = 0; i < notactivematches.size(); i++) { // Userid1と2に対応する名前を格納する
-      String username1 = userMapper.selectNameByUsers(notactivematches.get(i).getUserid1());
-      String username2 = userMapper.selectNameByUsers(notactivematches.get(i).getUserid2());
+      String username1 = this.HitAndBlow.asyncSelectNameByUsers(notactivematches.get(i).getUserid1());
+      String username2 = this.HitAndBlow.asyncSelectNameByUsers(notactivematches.get(i).getUserid2());
       notactivematcheslist.add(new MatchUser(notactivematches.get(i), username1, username2));
     }
 
-    ArrayList<Match> activematches = matchMapper.selectAllActiveByMatches();// アクティブな試合を取得（観戦者ロール用）
+    ArrayList<Match> activematches = this.HitAndBlow.asyncSelectAllActiveByMatches();// アクティブな試合を取得（観戦者ロール用）
+
     ArrayList<MatchUser> activematcheslist = new ArrayList<MatchUser>();// アクティブな試合結果を渡す
     for (int i = 0; i < activematches.size(); i++) { // Userid1と2に対応する名前を格納する
-      String username1 = userMapper.selectNameByUsers(activematches.get(i).getUserid1());
-      String username2 = userMapper.selectNameByUsers(activematches.get(i).getUserid2());
+      String username1 = this.HitAndBlow.asyncSelectNameByUsers(activematches.get(i).getUserid1());
+      String username2 = this.HitAndBlow.asyncSelectNameByUsers(activematches.get(i).getUserid2());
       activematcheslist.add(new MatchUser(activematches.get(i), username1, username2));
     }
     // 次の行にユーザロール用のマッチング待ちのMapper処理を書く
     String loginUser = prin.getName(); // ログイン名を取得
-    int myid = userMapper.selectIdByName(loginUser);
-    ArrayList<Integer> waitmatchesid = matchMapper.selectMatchIdByIsActive(myid);// 変更箇所
-    ArrayList<String> waitmatchesname = new ArrayList<String>();
-    ArrayList<User> waitusers = new ArrayList<User>();
-    for (int i = 0; i < waitmatchesid.size(); i++) {
-      waitmatchesname.add(userMapper.selectNameByUsers(waitmatchesid.get(i)));
-      waitusers.add(new User(waitmatchesid.get(i), waitmatchesname.get(i)));
+
+    if (loginUser != "Spectator") {// 観戦者でない場合
+      int myid = this.HitAndBlow.asyncSelectIdByName(loginUser);
+      ArrayList<Integer> waitmatchesid = this.HitAndBlow.asyncSelectMatchIdByIsActive(myid);
+      ArrayList<String> waitmatchesname = new ArrayList<String>();
+      ArrayList<User> waitusers = new ArrayList<User>();
+      for (int i = 0; i < waitmatchesid.size(); i++) {
+        waitmatchesname.add(this.HitAndBlow.asyncSelectNameByUsers(waitmatchesid.get(i)));
+        waitusers.add(new User(waitmatchesid.get(i), waitmatchesname.get(i)));
+      }
+      model.addAttribute("waitmatches", waitusers); // ここにマッチング待ち処理を渡す
     }
+
     // 表示に必要なデータをmodelに渡す
     model.addAttribute("users", users);
     model.addAttribute("notactivematcheslist", notactivematcheslist);
     model.addAttribute("activematcheslist", activematcheslist);
-    model.addAttribute("waitmatches", waitusers); // ここにマッチング待ち処理を渡す
     return "hitandblow.html";
   }
 
@@ -134,12 +130,12 @@ public class HitAndBlowController {
 
   @GetMapping("/history") // historyに遷移する
   public String history(@RequestParam("matchid") int matchid, ModelMap model, Principal prin) {
-    Match match = matchMapper.selectMatchById(matchid);
-    ArrayList<MatchInfo> matchInfo = matchInfoMapper.selectByMatchId(matchid);
-    int myid = matchMapper.selectUserId1ByMatchId(matchid);
-    int opponentsid = matchMapper.selectUserId2ByMatchId(matchid);
-    String myname = userMapper.selectNameByUsers(myid);
-    String opponentsname = userMapper.selectNameByUsers(opponentsid);
+    Match match = this.HitAndBlow.asyncSelectMatchById(matchid);
+    ArrayList<MatchInfo> matchInfo = this.HitAndBlow.asyncSelectByMatchId(matchid);
+    int myid = this.HitAndBlow.asyncSelectUserId1ByMatchId(matchid);
+    int opponentsid = this.HitAndBlow.asyncSelectUserId2ByMatchId(matchid);
+    String myname = this.HitAndBlow.asyncSelectNameByUsers(myid);
+    String opponentsname = this.HitAndBlow.asyncSelectNameByUsers(opponentsid);
 
     model.addAttribute("match", match);
     model.addAttribute("matchInfo", matchInfo);
@@ -153,7 +149,7 @@ public class HitAndBlowController {
   @GetMapping("/match") // 対戦相手を決定する
   public String match(@RequestParam Integer userid, ModelMap model, Principal prin) {
     String loginUser = prin.getName(); // ログイン名を取得
-    String rivalname = userMapper.selectNameByUsers(userid);// 対戦相手の名前を取得する変数
+    String rivalname = this.HitAndBlow.asyncSelectNameByUsers(userid);// 対戦相手の名前を取得する変数
     if (userid == 3) {// CPU戦のとき
       String message = loginUser + "の秘密の数字入力を待っています。";// システムメッセージを格納する変数
       model.addAttribute("name", loginUser);
@@ -164,11 +160,11 @@ public class HitAndBlowController {
       this.battleid = userid;// ここは一度しか経由しないから
       return "match.html";
     }
-    if (userid == userMapper.selectIdByName(loginUser)) {// User1がUser1と対戦できないようにする 例外処理
+    if (userid == this.HitAndBlow.asyncSelectIdByName(loginUser)) {// User1がUser1と対戦できないようにする 例外処理
       return this.hit_blow(model, prin);
     }
     // 以降 ログインIDとクリック時のIDは異なる
-    int loginid = userMapper.selectIdByName(loginUser);
+    int loginid = this.HitAndBlow.asyncSelectIdByName(loginUser);
     int formboolean = 1;
     model.addAttribute("rivalname", rivalname);// Thymeleafで値をHTMLに渡す
     model.addAttribute("myid", loginid);// 自分のid
@@ -185,7 +181,7 @@ public class HitAndBlowController {
     HitAndBlow check = new HitAndBlow();
     // SSE通信を行う。
     if (check.numFormat(in) != true) { // 数値の重複があった場合
-      String rivalname = userMapper.selectNameByUsers(rivalid);
+      String rivalname = this.HitAndBlow.asyncSelectNameByUsers(rivalid);
       int formboolean = 1;
       model.addAttribute("rivalname", rivalname);// Thymeleafで値をHTMLに渡す
       model.addAttribute("myid", myid);// 自分のid
@@ -194,10 +190,10 @@ public class HitAndBlowController {
       return "wait.html";
     }
 
-    String rivalname = userMapper.selectNameByUsers(rivalid);
+    String rivalname = this.HitAndBlow.asyncSelectNameByUsers(rivalid);
     String Myanswers = check.translateString(in);
     Match match = new Match(myid, rivalid, Myanswers, "", "", true);
-    matchMapper.insertMatch(match);
+    this.HitAndBlow.asyncInsertMatch(match);
     final SseEmitter SseEmitter = new SseEmitter();
     this.HitAndBlow.asyncHitAndBlow(SseEmitter);
     model.addAttribute("rivalname", rivalname);// 相手のid
@@ -225,7 +221,7 @@ public class HitAndBlowController {
     String rivalsecret = "????";// 相手の？？？？と表示されている秘密の数字を格納する変数
     int rivalHit = 0; // 相手のHitを数える変数
     int rivalBlow = 0; // 相手のBlowを数える変数
-    String rivalname = userMapper.selectNameByUsers(battleid);// 対戦相手の名前を取得する変数
+    String rivalname = this.HitAndBlow.asyncSelectNameByUsers(battleid);// 対戦相手の名前を取得する変数
     int[] Hit_Blow; // HitとBlowの値を格納する配列
     int goakflag = 0; // 正解かどうかの判定
 
@@ -233,7 +229,7 @@ public class HitAndBlowController {
 
     String loginUser = prin.getName(); // ログイン名を取得
     String message = loginUser + "の数字入力を待っています。";// システムメッセージを格納する変数
-    int loginUser_id = userMapper.selectIdByName(loginUser);// 自分のID取得
+    int loginUser_id = this.HitAndBlow.asyncSelectIdByName(loginUser);// 自分のID取得
 
     if (cheak.numFormat(in) != true) { // 数値の重複があった場合
       // 重複しているため例外処理を行う。
@@ -260,7 +256,7 @@ public class HitAndBlowController {
       this.Rivalanswers = cheak.translateString(this.rivalanswer); // ここで相手の答えを4桁の文字列にする
 
       Match match = new Match(loginUser_id, battleid, this.Myanswers, this.Rivalanswers, "", true);// 自分のid,相手のid,自分の答え,相手の答えを格納
-      matchMapper.insertMatch(match);// 1試合追加(勝敗は不明)
+      this.HitAndBlow.asyncInsertMatch(match);// 1試合追加(勝敗は不明)
       this.flag = 1; // 生成は1回のみだから
 
       model.addAttribute("message", message);// Thymeleafで値をHTMLに渡す
@@ -272,7 +268,7 @@ public class HitAndBlowController {
     }
     // 以降はflag=1。つまり、秘密の数字決定後の処理を行う
 
-    int matchid = matchMapper.selectMatchIdByuserId(loginUser_id, battleid);
+    int matchid = this.HitAndBlow.asyncSelectMatchIdByuserId(loginUser_id, battleid);
 
     Hit_Blow = cheak.chackHit_Blow(in, this.rivalanswer);// HitとBlowを確認する
     myHit = Hit_Blow[0];
@@ -280,7 +276,7 @@ public class HitAndBlowController {
 
     String myguess = cheak.translateString(in); // ここで自分の予想を4桁の文字列にする
     MatchInfo mymatchInfo = new MatchInfo(matchid, loginUser_id, myguess, myHit, myBlow, true); // 情報を格納する
-    matchInfoMapper.insertMatchInfo(mymatchInfo);
+    this.HitAndBlow.asyncInsertMatchInfo(mymatchInfo);
 
     if (myHit == 4) { // Hitが4だと正解にする
       goakflag = 1;
@@ -290,9 +286,9 @@ public class HitAndBlowController {
       rivalsecret = this.Rivalanswers;// 相手の？？？？を開示
       Match match = new Match(matchid, loginUser_id, battleid, this.Myanswers, this.Rivalanswers, loginUser + "の勝利!",
           false);// 勝敗を更新
-      matchMapper.updateById(match);
-      matchMapper.updateActive(match);
-      matchInfoMapper.updateActive(mymatchInfo);
+      this.HitAndBlow.asyncUpdateById(match);
+      this.HitAndBlow.asyncUpdateActive(match);
+      this.HitAndBlow.asyncUpdateActive(mymatchInfo);
     } else if (battleid == 3) {// battleid =3はCPUである。CPU戦の場合の処理をelse ifで記述している
       // プレイヤーが勝利していないためcpuの手を決める
 
@@ -306,7 +302,7 @@ public class HitAndBlowController {
 
       String rivalguesshand = cheak.translateString(rivalguess);// ここで相手の予想を4桁の文字列にする
       MatchInfo rivalmatchInfo = new MatchInfo(matchid, battleid, rivalguesshand, rivalHit, rivalBlow, true); // 情報を格納する
-      matchInfoMapper.insertMatchInfo(rivalmatchInfo);
+      this.HitAndBlow.asyncInsertMatchInfo(rivalmatchInfo);
     }
 
     if (rivalHit == 4) {// Hitが4だと正解にする
@@ -315,12 +311,12 @@ public class HitAndBlowController {
       message = rivalname + "の勝利です。";
       Match match = new Match(matchid, loginUser_id, battleid, this.Myanswers, this.Rivalanswers, rivalname + "の勝利!",
           false);// 勝敗を更新
-      matchMapper.updateById(match);
-      matchMapper.updateActive(match);
-      matchInfoMapper.updateActive(mymatchInfo);
+      this.HitAndBlow.asyncUpdateById(match);
+      this.HitAndBlow.asyncUpdateActive(match);
+      this.HitAndBlow.asyncUpdateActive(mymatchInfo);
     }
 
-    ArrayList<MatchInfo> matchInfo = matchInfoMapper.selectByMatchId(matchid);
+    ArrayList<MatchInfo> matchInfo = this.HitAndBlow.asyncSelectByMatchId(matchid);
 
     model.addAttribute("matchInfo", matchInfo);// Thymeleafで試合情報をHTMLに渡す
     model.addAttribute("message", message);// システムメッセージを表示するために用いる
@@ -341,10 +337,10 @@ public class HitAndBlowController {
   @GetMapping("/spect") // 対戦相手を決定する
   public String spect(@RequestParam Integer matchid, ModelMap model, Principal prin) {
     String message = "観戦用まだ未実装だよ";// SSE通信で共有？
-    int user1id = matchMapper.selectUserId1ByMatchId(matchid);// user1のidを取得
-    int user2id = matchMapper.selectUserId2ByMatchId(matchid);// user2のidを取得
-    String user1name = userMapper.selectNameByUsers(user1id);// user1の名前を取得
-    String user2name = userMapper.selectNameByUsers(user2id);// user2の名前を取得
+    int user1id = this.HitAndBlow.asyncSelectUserId1ByMatchId(matchid);// user1のidを取得
+    int user2id = this.HitAndBlow.asyncSelectUserId2ByMatchId(matchid);// user2のidを取得
+    String user1name = this.HitAndBlow.asyncSelectNameByUsers(user1id);// user1の名前を取得
+    String user2name = this.HitAndBlow.asyncSelectNameByUsers(user2id);// user2の名前を取得
     // ArrayList<MatchInfo> hogehoge; //SSE通信でリアルタイム試合状況を共有
 
     model.addAttribute("message", message);

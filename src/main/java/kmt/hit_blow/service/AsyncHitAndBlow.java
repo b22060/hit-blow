@@ -1,6 +1,7 @@
 package kmt.hit_blow.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -11,8 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import kmt.hit_blow.model.MatchInfoMapper;
+import kmt.hit_blow.model.MatchInfo;
 import kmt.hit_blow.model.MatchMapper;
+import kmt.hit_blow.model.Match;
 import kmt.hit_blow.model.UserMapper;
+import kmt.hit_blow.model.User;
 
 @Service
 public class AsyncHitAndBlow {
@@ -24,15 +28,79 @@ public class AsyncHitAndBlow {
   private int hogehoge = 0;// ０→1→0と遷移する
 
   @Autowired
-  MatchInfoMapper MIMapper; // MatchInfoMapper使用
-
+  private UserMapper userMapper;
   @Autowired
-  MatchMapper MMapper; // MatchInfoMapper使用
-
+  private MatchMapper matchMapper;
   @Autowired
-  UserMapper UMapper; // MatchInfoMapper使用
+  private MatchInfoMapper matchInfoMapper;
 
-  
+  /* UserMapperを使った処理一覧 */
+  public ArrayList<User> asyncSelectAllByUsers() {
+    return this.userMapper.selectAllByUsers();
+  }
+
+  public String asyncSelectNameByUsers(int userid) {
+    return this.userMapper.selectNameByUsers(userid);
+  }
+
+  public int asyncSelectIdByName(String userName) {
+    return this.userMapper.selectIdByName(userName);
+  }
+
+  /* MatchMapperを使った処理一覧 */
+  public ArrayList<Match> asyncSelectAllNotActiveByMatches() {
+    return this.matchMapper.selectAllNotActiveByMatches();
+  }
+
+  public ArrayList<Match> asyncSelectAllActiveByMatches() {
+    return this.matchMapper.selectAllActiveByMatches();
+  }
+
+  public Match asyncSelectMatchById(int matchid) {
+    return this.matchMapper.selectMatchById(matchid);
+  }
+
+  public int asyncSelectUserId1ByMatchId(int matchid) {
+    return this.matchMapper.selectUserId1ByMatchId(matchid);
+  }
+
+  public int asyncSelectUserId2ByMatchId(int matchid) {
+    return this.matchMapper.selectUserId2ByMatchId(matchid);
+  }
+
+  public int asyncSelectMatchIdByuserId(int userid1, int userid2) {
+    return this.matchMapper.selectMatchIdByuserId(userid1, userid2);
+  }
+
+  public void asyncInsertMatch(Match match) {
+    this.matchMapper.insertMatch(match);
+  }
+
+  public void asyncUpdateById(Match match) {
+    this.matchMapper.updateById(match);
+  }
+
+  public boolean asyncUpdateActive(Match match) {
+    return this.matchMapper.updateActive(match);
+  }
+
+  public ArrayList<Integer> asyncSelectMatchIdByIsActive(int user2id) {
+    return this.matchMapper.selectMatchIdByIsActive(user2id);
+  }
+
+  /* MatchInfoMapperを使った処理一覧 */
+
+  public ArrayList<MatchInfo> asyncSelectByMatchId(int matchid) {
+    return this.matchInfoMapper.selectByMatchId(matchid);
+  }
+
+  public void asyncInsertMatchInfo(MatchInfo matchinfo) {
+    this.matchInfoMapper.insertMatchInfo(matchinfo);
+  }
+
+  public boolean asyncUpdateActive(MatchInfo matchinfo) {
+    return this.matchInfoMapper.updateActive(matchinfo);
+  }
 
   @Async
   public void asyncHitAndBlow(SseEmitter emitter) {
